@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Weather App</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .forecast { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Weather Forecast</h1>
+        <input type="text" id="city" class="form-control mb-2" placeholder="Enter city name" />
+        <button class="btn btn-primary mb-3" onclick="getWeather()">Get Weather</button>
+        <div id="weather-result"></div>
+        <div class="mt-4">
+            <h5>Recent Searches</h5>
+            <ul>
+                {% for item in recent_searches %}
+                <li>{{ item }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function getWeather() {
+            const city = document.getElementById('city').value;
+            const geoResponse = await fetch('/geocode', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({city})
+            });
+
+            const geoData = await geoResponse.json();
+            if (geoData.error) {
+                document.getElementById('weather-result').innerText = geoData.error;
+                return;
+            }
+
+            const weatherResponse = await fetch('/weather', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({lat: geoData.lat, lon: geoData.lon, city})
+            });
+
+            const weatherData = await weatherResponse.json();
+            if (weatherData.error) {
+                document.getElementById('weather-result').innerText = weatherData.error;
+                return;
+            }
+
+            const days = weatherData.daily.time;
+            const maxTemps = weatherData.daily.temperature_2m_max;
+            const minTemps = weatherData.daily.temperature_2m_min;
+            const rainChances = weatherData.daily.precipitation_probability_max;
+            const weatherCodes = weatherData.daily.weathercode;
+
+            let html = `<h4>Forecast for ${geoData.city}, ${geoData.country}</h4><div class="forecast">`;
+            for (let i = 0; i < days.length; i++) {
+                html += `<div><strong>${days[i]}</strong> - Max: ${maxTemps[i]}°C, Min: ${minTemps[i]}°C, Rain: ${rainChances[i]}%, Code: ${weatherCodes[i]}</div>`;
+            }
+            html += '</div>';
+
+            document.getElementById('weather-result').innerHTML = html;
+        }
+    </script>
+</body>
+</html>
